@@ -239,7 +239,7 @@ parameters:
   value: redhat-openjdk18-openshift:1.8
 - description: the base domain that this app will have when accessed from outside OCP
   name: BASE_APP_DOMAIN
-  required: true 
+  required: false 
 - description: Name of a service account that can deploy to this project
   name: SA_NAME
   required: true

@@ -154,4 +154,4 @@ parameters:
   value: redhat-openjdk18-openshift:1.8
 - description: the base domain that this app will have when accessed from outside OCP
   name: BASE_APP_DOMAIN
-  required: true 
+  required: false 

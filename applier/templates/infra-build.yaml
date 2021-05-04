@@ -5,18 +5,11 @@ labels:
 metadata:
   annotations:
     description: Application template for maven applications built using a Jenkins Pipeline
-    iconClass: spring-rest
+    iconClass: infra-build
     tags: spring,xpaas,jenkins-ci
     version: 1.2.0
   name: jenkins-infra-build-pipeline
 objects:
-- apiVersion: image.openshift.io/v1
-  kind: ImageStream
-  metadata:
-    labels:
-      application: ${APPLICATION_NAME}
-    name: ${APPLICATION_NAME}
-    namespace: ${NAMESPACE}
 - apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
@@ -41,31 +34,26 @@ objects:
       jenkinsPipelineStrategy:
         jenkinsfile: |-
                 
-                node("infra-build") {
+                node("maven") {
                 
                   stage("Checkout") {
-                    sh "git clone https://github.com/raffaelespazzoliorg/bdd-demo.git"   
-                     dir('spring-petclinic-rest')
-                     {
-                      sh "pwd"
-                     }
+                    sh "git clone https://github.com/miqbal-redhat/bbd-demo.git"   
+                     dir('bbd-demo/applier/templates')
+                       {
+                        sh "pwd"
+                       }
                     
                     }
                     
-                   stage("Deploy Seleninum") {
-                    sh "oc new-app simontim/selenium-openshift:latest -n poc-dev"
-                   }
-                   
-                   
-                  stage("Deploy Rest App") {
-                    sh "oc process -f applier/templates/spring-build.yml --param-file applier/params/spring-build-dev | oc apply -f- -n poc-dev"
-                   }
+                    stage("Deply Infrastructure") {
+                    parallel (
+                            'Selinium':  { sh "oc new-app simontim/selenium-openshift:latest -n poc-dev"},
+                            'Rest':  { sh "oc process -f https://raw.githubusercontent.com/miqbal-redhat/bbd-demo/main/applier/templates/spring-build.yaml -p NAMESPACE=poc-dev -p APPLICATION_NAME=spring-petclinic-rest  -p SA_NAMESPACE=poc-dev | oc apply -f- -n poc-dev"},
+                            'Angular': { sh "oc process -f https://raw.githubusercontent.com/miqbal-redhat/bbd-demo/main/applier/templates/nodejs-build.yaml -p NAMESPACE=poc-dev -p APPLICATION_NAME=spring-petclinic-angular  -p SA_NAMESPACE=poc-dev | oc apply -f- -n poc-dev"}
                     
-                  stage("Deploy Angular App") {
-                    sh "oc process -f applier/templates/nodejs-build.yml --param-file applier/params/nodejs-build-dev | oc apply -f- -n poc-dev"
-                   }
+                      )
                     
-                    
+                    }
                   
                 }    
       env:
@@ -77,40 +65,18 @@ objects:
           value: "${BASE_APP_DOMAIN}"
         - name: "APPLICATION_REF"
           value: "${APPLICATION_REF}"      
-- apiVersion: build.openshift.io/v1
-  kind: BuildConfig
-  metadata:
-    labels:
-      application: ${APPLICATION_NAME}
-    name: ${APPLICATION_NAME}
-    namespace: "${NAMESPACE}"
-  spec:
-    output:
-      to:
-        kind: ImageStreamTag
-        name: ${APPLICATION_NAME}:latest
-    source:
-      binary: {}
-      type: Binary
-    strategy:
-      sourceStrategy:
-        from:
-          kind: ImageStreamTag
-          name: ${IMAGE_STREAM_TAG_NAME}
-          namespace: ${IMAGE_STREAM_NAMESPACE}
-      type: Source
 parameters:
 - description: The name for the application.
   name: APPLICATION_NAME
   required: true
-  value: todomvc
+  value: poc-dev
 - description: The namespace to deploy into
   name: NAMESPACE
   required: true
 - description: Git source URI for application
   name: SOURCE_REPOSITORY_URL
   required: true
-  value: https://github.com/raffaelespazzoliorg/spring-petclinic-rest
+  value: https://github.com/miqbal-redhat/bbd-demo.git
 - description: Git branch/tag reference
   name: SOURCE_REPOSITORY_REF
   value: "master"
@@ -120,7 +86,7 @@ parameters:
 - description: Source code repo for demo app
   name: APPLICATION_SOURCE_REPO
   required: true
-  value: https://github.com/raffaelespazzoliorg/spring-petclinic-rest
+  value: https://github.com/miqbal-redhat/bbd-demo.git
 - description: Application context dir
   name: APPLICATION_CONTEXT_DIR
   required: false
@@ -130,7 +96,7 @@ parameters:
   required: false
 - description: Path within Git project pointing to the pipeline run script
   name: PIPELINE_SCRIPT
-  value: applier/springjenkins/Jenkinsfile
+  value: applier/templates/infra-buil.yaml
 - description: GitHub trigger secret
   from: '[a-zA-Z0-9]{8}'
   generate: expression

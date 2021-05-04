@@ -56,13 +56,7 @@ objects:
                       
                       sh "oc start-build bc/spring-petclinic-rest --from-file=target/spring-petclinic-rest-2.4.2.jar --follow"
                       
-                      
-                    // sh "oc start-build spring-petclinic-rest  --follow"
-                      
-                    //  sh "oc new-app spring-petclinic-rest -n poc-dev"
-                      
-                   //   sh "oc expose service spring-petclinic-rest"
-                      }
+                                            }
                     
                   }
                 }    
@@ -165,6 +159,25 @@ objects:
           name: ${APPLICATION_NAME}:latest
       type: ImageChange
     - type: ConfigChange
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    creationTimestamp: null
+    labels:
+      template: spring-rest
+    name: jenkins_edit
+    namespace: ${NAMESPACE}
+  groupNames: null
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: edit
+  subjects:
+  - kind: ServiceAccount
+    name: ${SA_NAME}
+    namespace: ${SA_NAMESPACE}
+  userNames:
+  - system:serviceaccount:${SA_NAMESPACE}:${SA_NAME}
 parameters:
 - description: The name for the application.
   name: APPLICATION_NAME
